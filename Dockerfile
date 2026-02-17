@@ -17,7 +17,9 @@ RUN apt-get update && apt-get install -y pkg-config libssl-dev && rm -rf /var/li
 COPY Cargo.toml Cargo.lock* ./
 RUN mkdir src && echo 'fn main() {}' > src/main.rs
 RUN cargo build --release 2>/dev/null || true
-RUN rm -rf src
+
+# Remove the dummy binary and fingerprints so cargo recompiles with real source
+RUN rm -rf src target/release/pretty_rusty target/release/deps/pretty_rusty-* target/release/.fingerprint/pretty_rusty-*
 
 # Now build the real project
 COPY src/ src/
@@ -46,5 +48,4 @@ RUN mkdir -p data
 # Expose the server port
 EXPOSE 3001
 
-# Run the engine with diagnostics
-CMD ["sh", "-c", "echo 'Container starting...' && ls -la /app/pretty_rusty && ldd /app/pretty_rusty 2>&1 || echo 'ldd check done' && echo 'Launching binary...' && exec ./pretty_rusty"]
+CMD ["./pretty_rusty"]
