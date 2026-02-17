@@ -36,9 +36,13 @@ impl AppConfig {
             .parse::<f64>()
             .map_err(|e| EngineError::Config(format!("MAX_DAILY_DRAWDOWN: {e}")))?;
 
-        let server_port = env_var_or("SERVER_PORT", "3001")
+        // Railway injects PORT; fall back to SERVER_PORT, then 3001
+        let port_str = std::env::var("PORT")
+            .or_else(|_| std::env::var("SERVER_PORT"))
+            .unwrap_or_else(|_| "3001".to_string());
+        let server_port = port_str
             .parse::<u16>()
-            .map_err(|e| EngineError::Config(format!("SERVER_PORT: {e}")))?;
+            .map_err(|e| EngineError::Config(format!("PORT/SERVER_PORT: {e}")))?;
 
         Ok(Self {
             kalshi_api_key_id: env_var("KALSHI_API_KEY_ID")?,

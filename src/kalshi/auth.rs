@@ -18,8 +18,15 @@ pub struct KalshiAuth {
 
 impl KalshiAuth {
     pub fn new(api_key_id: &str, private_key_path: &Path) -> EngineResult<Self> {
-        let pem = std::fs::read_to_string(private_key_path)
-            .map_err(|e| EngineError::Auth(format!("read key {}: {e}", private_key_path.display())))?;
+        // Try env var first (for Railway/cloud), fall back to file
+        let pem = if let Ok(pem_env) = std::env::var("KALSHI_PRIVATE_KEY_PEM") {
+            tracing::info!("loaded RSA key from KALSHI_PRIVATE_KEY_PEM env var");
+            pem_env
+        } else {
+            tracing::info!(path = %private_key_path.display(), "loading RSA key from file");
+            std::fs::read_to_string(private_key_path)
+                .map_err(|e| EngineError::Auth(format!("read key {}: {e}", private_key_path.display())))?
+        };
 
         let private_key = RsaPrivateKey::from_pkcs1_pem(&pem)
             .map_err(|e| EngineError::Auth(format!("parse RSA PEM: {e}")))?;
