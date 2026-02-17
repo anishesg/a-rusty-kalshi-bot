@@ -1,0 +1,1182 @@
+openapi: 3.0.0
+info:
+  title: FreeCryptoAPI
+  description: REST API documentation for FreeCryptoAPI.com
+  contact:
+    name: FreeCryptoAPI Support
+    url: https://freecryptoapi.com
+  version: 1.0.3
+servers:
+  - url: https://api.freecryptoapi.com/v1
+security:
+  - BearerAuth: []
+tags:
+  - name: Market Data
+  - name: Technical Analysis
+  - name: Exchange Data (Spot&Derivatives)
+  - name: Conversion
+  - name: Historical Data
+paths:
+  /getCryptoList:
+    get:
+      tags:
+        - Market Data
+      summary: Get list of supported crypto currencies and pairs
+      responses:
+        "200":
+          description: Success
+  /getData:
+    get:
+      tags:
+        - Market Data
+      summary: Get single or multiple crypto currency data
+      parameters:
+        - name: symbol
+          in: query
+          description: "Symbols separated by + (e.g., BTC+ETH+ETHBTC@binance)"
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+  /getTop:
+    get:
+      tags:
+        - Market Data
+      summary: Get ranked coins merged with live data
+      parameters:
+        - name: top
+          in: query
+          description: "Maximum number of ranked coins to return (e.g., 100)"
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Success
+  /getExchange:
+    get:
+      tags:
+        - Exchange Data (Spot&Derivatives)
+      summary: Get all pairs and their latest data on a specific exchange
+      parameters:
+        - name: exchange
+          in: query
+          description: "Supported entries for SPOT: binance, mexc, kucoin, gate, huobi, bybit, bitget. For DERIVATIVES: hyperliquid, aster"
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+  /getDataCurrency:
+    get:
+      tags:
+        - Market Data
+      summary: Get data in local currency
+      parameters:
+        - name: symbol
+          in: query
+          description: "Crypto currencies separated by + (e.g., BTC+ETH)"
+          required: true
+          schema:
+            type: string
+        - name: local
+          in: query
+          description: "3-letter local currency code (e.g., EUR, GBP, TRY)"
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+  /getConversion:
+    get:
+      tags:
+        - Conversion
+      summary: Convert between any 2 crypto currencies
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: amount
+          in: query
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Success
+  /getHistory:
+    get:
+      tags:
+        - Historical Data
+      summary: Get last X days of historical data
+      parameters:
+        - name: symbol
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: days
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Success
+  /getTimeframe:
+    get:
+      tags:
+        - Historical Data
+      summary: Get historical data within date range
+      parameters:
+        - name: symbol
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: start
+          in: query
+          description: Start date (format yyyy-mm-dd)
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: end
+          in: query
+          description: End date (format yyyy-mm-dd)
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Success
+  /getPerformance:
+    get:
+      tags:
+        - Market Data
+      summary: Get performance change percentages for a symbol (1d, 7d, 15d, 30d, 90d, 180d, 270d, 365d, 720d)
+      parameters:
+        - name: symbol
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+  /getTechnicalAnalysis:
+    get:
+      tags:
+        - Technical Analysis
+      summary: Get technical analysis (MACD, signal line, RSI) for a symbol
+      parameters:
+        - name: symbol
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+  /getVolatility:
+    get:
+      tags:
+        - Market Data
+      summary: Get volatility (standard deviation of price) for a symbol or top-ranked coins
+      description: >
+        Returns volatility (standard deviation of price) over 30, 90, 180, and 360 days.
+        If `symbol` is provided, returns data for that specific asset.
+        If `symbol` is omitted, returns top 50 by market rank by default.
+        Use `top` to specify up to top 200.
+      parameters:
+        - name: symbol
+          in: query
+          description: "Single symbol (e.g., BTC, ETH, AVAX, etc.). When provided, `top` is ignored."
+          required: false
+          schema:
+            type: string
+        - name: top
+          in: query
+          description: "Number of ranked coins to include when `symbol` is not provided. Default 50, max 200."
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        "200":
+          description: Success
+  /getBreakouts:
+    get:
+      tags:
+        - Technical Analysis
+      summary: Get 20/50/200-SMA breakout signals
+      description: >
+        Detects breakout and crossover signals relative to 20, 50, and 200 period SMAs for
+        either a single crypto symbol or, if no `symbol` parameter is provided,
+        automatically returns the top 200 ranked coins.
+
+        **Signals**
+        - `cross_up_20|50|200`: latest close crossed **above** SMA (previous close ≤ previous SMA, latest close > SMA)
+        - `cross_down_20|50|200`: latest close crossed **below** SMA (previous close ≥ previous SMA, latest close < SMA)
+        - `above_all`: latest close above SMA20, SMA50, and SMA200
+        - `below_all`: latest close below SMA20, SMA50, and SMA200
+        - `trend_stack`: one of `"20>50>200"`, `"20<50<200"`, or `"mixed"`
+      parameters:
+        - name: symbol
+          in: query
+          description: "Single symbol (e.g., BTC, ETH). When omitted, the API returns the top 200 ranked coins."
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BreakoutsResponse'
+  /getCorrelation:
+    get:
+      tags:
+        - Technical Analysis
+      summary: Get price correlation between multiple crypto assets
+      description: >
+        Calculates Pearson correlation coefficients based on daily returns between 2–10 symbols
+        over a configurable time window. Returns pairwise correlations with strength labels
+        and a full NxN correlation matrix.
+
+
+        **Correlation strength**
+
+        - `very strong`: |r| ≥ 0.8
+
+        - `strong`: |r| ≥ 0.6
+
+        - `moderate`: |r| ≥ 0.4
+
+        - `weak`: |r| ≥ 0.2
+
+        - `very weak`: |r| < 0.2
+      parameters:
+        - name: symbols
+          in: query
+          description: "Comma-separated symbols, minimum 2, maximum 10 (e.g., BTC,ETH,SOL,XRP)"
+          required: true
+          schema:
+            type: string
+        - name: days
+          in: query
+          description: "Correlation window in days (default 90, range 7–730)"
+          required: false
+          schema:
+            type: integer
+            minimum: 7
+            maximum: 730
+            default: 90
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CorrelationResponse'
+  /getSupportResistance:
+    get:
+      tags:
+        - Technical Analysis
+      summary: Get support & resistance levels (Pivot Points, Fibonacci, Camarilla, Woodie)
+      description: >
+        Calculates key support and resistance levels from OHLC candle data using four methods:
+
+        - **Classic Pivot Points** — PP, R1–R3, S1–S3
+
+        - **Fibonacci Pivot Points** — using 0.382 / 0.618 / 1.0 ratios
+
+        - **Fibonacci Retracement** — period high/low with levels at 0%, 23.6%, 38.2%, 50%, 61.8%, 78.6%, 100%
+
+        - **Camarilla Pivots** — R1–R4, S1–S4
+
+        - **Woodie Pivots** — R1–R2, PP, S1–S2
+
+
+        Also returns the current price position relative to classic pivot levels (nearest support & resistance).
+      parameters:
+        - name: symbol
+          in: query
+          description: "Single symbol (e.g., BTC, ETH)"
+          required: true
+          schema:
+            type: string
+        - name: period
+          in: query
+          description: "Number of recent OHLC candles to analyze (default 30, max 365). Affects Fibonacci retracement range."
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 365
+            default: 30
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportResistanceResponse'
+  /getMARibbon:
+    get:
+      tags:
+        - Technical Analysis
+      summary: Get Moving Average Ribbon (SMA & EMA for 10/20/50/100/200 periods)
+      description: >
+        Returns daily SMA and EMA values for 5 periods (10, 20, 50, 100, 200) over a configurable
+        time window. Includes a latest snapshot with above/below indicators and trend alignment detection.
+
+
+        **Trend signals**
+
+        - `bullish_aligned`: all MAs ordered 10 > 20 > 50 > 100 > 200
+
+        - `bearish_aligned`: all MAs ordered 10 < 20 < 50 < 100 < 200
+
+        - `mixed`: MAs are not in a clean order
+      parameters:
+        - name: symbol
+          in: query
+          description: "Single symbol (e.g., BTC, ETH)"
+          required: true
+          schema:
+            type: string
+        - name: days
+          in: query
+          description: "Number of days of ribbon data to return (default 90, max 365)"
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 365
+            default: 90
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MARibbonResponse'
+  /getBollinger:
+    get:
+      tags:
+        - Technical Analysis
+      summary: Get Bollinger Bands with squeeze & expansion detection
+      description: >
+        Returns daily Bollinger Bands (upper, middle, lower) with bandwidth percentage, %B indicator,
+        and trading signals. Includes squeeze detection (low volatility / consolidation) and
+        expansion detection (high volatility / breakout).
+
+
+        **Signals**
+
+        - `oversold`: %B < 0 (price below lower band)
+
+        - `near_lower`: %B < 0.2
+
+        - `neutral`: %B between 0.2 and 0.8
+
+        - `near_upper`: %B > 0.8
+
+        - `overbought`: %B > 1.0 (price above upper band)
+
+
+        **Squeeze**: current bandwidth < 50% of average bandwidth (consolidation / breakout incoming)
+
+        **Expansion**: current bandwidth > 150% of average bandwidth (breakout in progress)
+      parameters:
+        - name: symbol
+          in: query
+          description: "Single symbol (e.g., BTC, ETH)"
+          required: true
+          schema:
+            type: string
+        - name: days
+          in: query
+          description: "Number of days of band data to return (default 90, max 365)"
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 365
+            default: 90
+        - name: period
+          in: query
+          description: "SMA period for the middle band (default 20, range 5–100)"
+          required: false
+          schema:
+            type: integer
+            minimum: 5
+            maximum: 100
+            default: 20
+        - name: std_dev
+          in: query
+          description: "Standard deviation multiplier for upper/lower bands (default 2.0, range 0.5–4.0)"
+          required: false
+          schema:
+            type: number
+            minimum: 0.5
+            maximum: 4.0
+            default: 2.0
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BollingerResponse'
+  /getATHATL:
+    get:
+      tags:
+        - Market Data
+      summary: Get all-time high/low, dates, distance from ATH, multipliers
+      description: >
+        Returns per-asset **ATH (price & date)**, **ATL (price & date, ignoring zero prices)**,
+        **distance from ATH (%)**, **ATL→ATH multiplier (x)**, and **% from ATL to current**.
+        If `symbol` is provided, computes for that asset; if omitted, returns the **top 200** ranked coins.
+        Optionally restricts calculations to the last `months` of history.
+
+        **Notes**
+        - When `months` is set, all metrics are computed within that rolling window.
+      parameters:
+        - name: symbol
+          in: query
+          description: "Single symbol (e.g., BTC). When omitted, the API returns the top 200 ranked coins."
+          required: false
+          schema:
+            type: string
+        - name: months
+          in: query
+          description: "Optional rolling window in months to limit the calculation (e.g., 12). Range 1–240."
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 240
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ATHATLResponse'
+  /getOHLC:
+    get:
+      tags:
+        - Historical Data
+      summary: Get daily OHLC candles
+      description: >
+        Returns daily OHLC candles from the `ohlc` dataset.
+        - Provide **either** `days` **or** `start_date`+`end_date`.
+        - **Default**: last **30** days (when no parameters are supplied).
+        - **Maximum**: **365** days per request (applies to both modes).
+        - Dates must be in `YYYY-MM-DD` format.
+        - Results are sorted **ascending** by `time_close`.
+      parameters:
+        - name: symbol
+          in: query
+          description: "Base symbol (e.g., BTC, ETH, NEBL). Case-insensitive."
+          required: true
+          schema:
+            type: string
+        - name: days
+          in: query
+          description: "Return the last X calendar days (default 30, max 365). Ignored if `start_date`/`end_date` are provided."
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 365
+            default: 30
+        - name: start_date
+          in: query
+          description: "Inclusive start date (YYYY-MM-DD). Must be used together with `end_date`. Span must be ≤ 365 days."
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          description: "Inclusive end date (YYYY-MM-DD). Must be used together with `start_date`. Span must be ≤ 365 days."
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OHLCDailyResponse'
+        "400":
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: "Use either days OR start_date+end_date, not both."
+  /getFearGreed:
+    get:
+      tags:
+        - Market Data
+      summary: Get Fear & Greed Index
+      description: >
+        Returns the latest **Fear & Greed Index**
+        - `fear` when `fg_index ≤ 32`
+        - `greed` when `fg_index ≥ 72`
+        - `neutral` otherwise
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FGIndexResponse'
+components:
+  schemas:
+    BreakoutItem:
+      type: object
+      properties:
+        sembol:
+          type: string
+          example: BTC
+        last_close:
+          type: number
+          format: double
+          nullable: true
+          example: 67890.12
+        sma20:
+          type: number
+          format: double
+          nullable: true
+        sma50:
+          type: number
+          format: double
+          nullable: true
+        sma200:
+          type: number
+          format: double
+          nullable: true
+        cross_up_20:
+          type: boolean
+          example: true
+        cross_down_20:
+          type: boolean
+          example: false
+        cross_up_50:
+          type: boolean
+        cross_down_50:
+          type: boolean
+        cross_up_200:
+          type: boolean
+        cross_down_200:
+          type: boolean
+        above_all:
+          type: boolean
+        below_all:
+          type: boolean
+        trend_stack:
+          type: string
+          enum: ["20>50>200", "20<50<200", "mixed"]
+          example: "20>50>200"
+    BreakoutsResponse:
+      type: object
+      properties:
+        status:
+          type: boolean
+          example: true
+        count:
+          type: integer
+          example: 200
+        symbols:
+          type: array
+          items:
+            $ref: '#/components/schemas/BreakoutItem'
+    ATHATLItem:
+      type: object
+      properties:
+        sembol:
+          type: string
+          example: BTC
+        last_close:
+          type: number
+          format: double
+          nullable: true
+        ath_price:
+          type: number
+          format: double
+          nullable: true
+        ath_date:
+          type: string
+          format: date
+          nullable: true
+        atl_price:
+          type: number
+          format: double
+          nullable: true
+          description: "ATL ignores rows with close = 0."
+        atl_date:
+          type: string
+          format: date
+          nullable: true
+        distance_from_ath_pct:
+          type: number
+          format: double
+          nullable: true
+          description: "Positive when current price is below ATH."
+        atl_to_ath_x:
+          type: number
+          format: double
+          nullable: true
+          description: "Multiplier from ATL to ATH (ATH / ATL)."
+        atl_to_current_pct:
+          type: number
+          format: double
+          nullable: true
+          description: "Percentage increase from ATL to current price."
+    ATHATLResponse:
+      type: object
+      properties:
+        status:
+          type: boolean
+          example: true
+        count:
+          type: integer
+          example: 200
+        symbols:
+          type: array
+          items:
+            $ref: '#/components/schemas/ATHATLItem'
+    OHLCDailyItem:
+      type: object
+      properties:
+        time_close:
+          type: string
+          description: "Close-of-day timestamp in server timezone (Europe/Istanbul)."
+          example: "2025-10-20 23:59:59"
+        open:
+          type: number
+          format: double
+          example: 65000.12
+        high:
+          type: number
+          format: double
+          example: 67200.55
+        low:
+          type: number
+          format: double
+          example: 64500.10
+        close:
+          type: number
+          format: double
+          example: 66666.66
+    OHLCDailyResponse:
+      type: object
+      properties:
+        status:
+          type: boolean
+          example: true
+        symbol:
+          type: string
+          example: BTC
+        date_range:
+          type: object
+          properties:
+            start:
+              type: string
+              example: "2025-09-21 00:00:00"
+            end:
+              type: string
+              example: "2025-10-20 23:59:59"
+        resultset_size:
+          type: integer
+          example: 30
+        result:
+          type: array
+          items:
+            $ref: '#/components/schemas/OHLCDailyItem'
+    FGIndexResponse:
+      type: object
+      properties:
+        status:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            fg_index:
+              type: integer
+              description: "Fear Greed Index"
+              example: 41
+            emotion:
+              type: string
+              enum: [fear, neutral, greed]
+              example: neutral
+            last_update:
+              type: string
+              description: "Timestamp of the latest FG."
+              example: "2025-10-27 10:12:00"
+    CorrelationPair:
+      type: object
+      properties:
+        pair:
+          type: string
+          example: "BTC/ETH"
+        correlation:
+          type: number
+          format: double
+          example: 0.8723
+        strength:
+          type: string
+          enum: [very strong, strong, moderate, weak, very weak]
+          example: very strong
+        direction:
+          type: string
+          enum: [positive, negative]
+          example: positive
+    CorrelationResponse:
+      type: object
+      properties:
+        status:
+          type: boolean
+          example: true
+        days:
+          type: integer
+          example: 90
+        data_points:
+          type: integer
+          description: "Number of overlapping days used for calculation"
+          example: 87
+        symbols:
+          type: array
+          items:
+            type: string
+          example: ["BTC", "ETH", "SOL"]
+        correlations:
+          type: array
+          items:
+            $ref: '#/components/schemas/CorrelationPair'
+        matrix:
+          type: object
+          description: "NxN correlation matrix. Keys are symbols, values are objects mapping each symbol to its correlation coefficient."
+          example:
+            BTC: { BTC: 1.0, ETH: 0.8723, SOL: 0.7512 }
+            ETH: { BTC: 0.8723, ETH: 1.0, SOL: 0.8105 }
+            SOL: { BTC: 0.7512, ETH: 0.8105, SOL: 1.0 }
+    PivotLevels:
+      type: object
+      properties:
+        r3:
+          type: number
+          format: double
+        r2:
+          type: number
+          format: double
+        r1:
+          type: number
+          format: double
+        pp:
+          type: number
+          format: double
+        s1:
+          type: number
+          format: double
+        s2:
+          type: number
+          format: double
+        s3:
+          type: number
+          format: double
+    FibRetracementLevel:
+      type: object
+      properties:
+        level:
+          type: number
+          format: double
+          example: 0.382
+        price:
+          type: number
+          format: double
+          example: 92150.45
+    SupportResistanceResponse:
+      type: object
+      properties:
+        status:
+          type: boolean
+          example: true
+        symbol:
+          type: string
+          example: BTC
+        period:
+          type: integer
+          example: 30
+        candles_used:
+          type: integer
+          example: 30
+        last_candle:
+          type: object
+          properties:
+            open:
+              type: number
+              format: double
+            high:
+              type: number
+              format: double
+            low:
+              type: number
+              format: double
+            close:
+              type: number
+              format: double
+            date:
+              type: string
+        classic_pivots:
+          $ref: '#/components/schemas/PivotLevels'
+        fibonacci_pivots:
+          $ref: '#/components/schemas/PivotLevels'
+        fibonacci_retracement:
+          type: object
+          properties:
+            period_high:
+              type: number
+              format: double
+            period_low:
+              type: number
+              format: double
+            levels:
+              type: array
+              items:
+                $ref: '#/components/schemas/FibRetracementLevel'
+        camarilla_pivots:
+          type: object
+          properties:
+            r4:
+              type: number
+              format: double
+            r3:
+              type: number
+              format: double
+            r2:
+              type: number
+              format: double
+            r1:
+              type: number
+              format: double
+            s1:
+              type: number
+              format: double
+            s2:
+              type: number
+              format: double
+            s3:
+              type: number
+              format: double
+            s4:
+              type: number
+              format: double
+        woodie_pivots:
+          type: object
+          properties:
+            r2:
+              type: number
+              format: double
+            r1:
+              type: number
+              format: double
+            pp:
+              type: number
+              format: double
+            s1:
+              type: number
+              format: double
+            s2:
+              type: number
+              format: double
+        position:
+          type: object
+          properties:
+            current_price:
+              type: number
+              format: double
+            nearest_support:
+              type: object
+              nullable: true
+              properties:
+                label:
+                  type: string
+                  example: S1
+                price:
+                  type: number
+                  format: double
+            nearest_resistance:
+              type: object
+              nullable: true
+              properties:
+                label:
+                  type: string
+                  example: R1
+                price:
+                  type: number
+                  format: double
+    MARibbonEntry:
+      type: object
+      properties:
+        date:
+          type: string
+        close:
+          type: number
+          format: double
+        sma_10:
+          type: number
+          format: double
+          nullable: true
+        sma_20:
+          type: number
+          format: double
+          nullable: true
+        sma_50:
+          type: number
+          format: double
+          nullable: true
+        sma_100:
+          type: number
+          format: double
+          nullable: true
+        sma_200:
+          type: number
+          format: double
+          nullable: true
+        ema_10:
+          type: number
+          format: double
+        ema_20:
+          type: number
+          format: double
+        ema_50:
+          type: number
+          format: double
+        ema_100:
+          type: number
+          format: double
+        ema_200:
+          type: number
+          format: double
+    MARibbonSnapshot:
+      type: object
+      properties:
+        date:
+          type: string
+        close:
+          type: number
+          format: double
+        sma_10:
+          type: number
+          format: double
+          nullable: true
+        sma_20:
+          type: number
+          format: double
+          nullable: true
+        sma_50:
+          type: number
+          format: double
+          nullable: true
+        sma_100:
+          type: number
+          format: double
+          nullable: true
+        sma_200:
+          type: number
+          format: double
+          nullable: true
+        above_sma_10:
+          type: boolean
+        above_sma_20:
+          type: boolean
+        above_sma_50:
+          type: boolean
+        above_sma_100:
+          type: boolean
+        above_sma_200:
+          type: boolean
+        ema_10:
+          type: number
+          format: double
+        ema_20:
+          type: number
+          format: double
+        ema_50:
+          type: number
+          format: double
+        ema_100:
+          type: number
+          format: double
+        ema_200:
+          type: number
+          format: double
+        above_ema_10:
+          type: boolean
+        above_ema_20:
+          type: boolean
+        above_ema_50:
+          type: boolean
+        above_ema_100:
+          type: boolean
+        above_ema_200:
+          type: boolean
+        above_all_sma:
+          type: boolean
+        below_all_sma:
+          type: boolean
+        above_all_ema:
+          type: boolean
+        below_all_ema:
+          type: boolean
+        sma_trend:
+          type: string
+          enum: [bullish_aligned, bearish_aligned, mixed]
+          example: bullish_aligned
+        ema_trend:
+          type: string
+          enum: [bullish_aligned, bearish_aligned, mixed]
+          example: mixed
+    MARibbonResponse:
+      type: object
+      properties:
+        status:
+          type: boolean
+          example: true
+        symbol:
+          type: string
+          example: BTC
+        days:
+          type: integer
+          example: 90
+        snapshot:
+          $ref: '#/components/schemas/MARibbonSnapshot'
+        ribbon:
+          type: array
+          items:
+            $ref: '#/components/schemas/MARibbonEntry'
+    BollingerBandEntry:
+      type: object
+      properties:
+        date:
+          type: string
+        close:
+          type: number
+          format: double
+        upper_band:
+          type: number
+          format: double
+        middle_band:
+          type: number
+          format: double
+        lower_band:
+          type: number
+          format: double
+        bandwidth:
+          type: number
+          format: double
+          description: "Bandwidth as percentage of middle band"
+        percent_b:
+          type: number
+          format: double
+          description: "Position within bands (0 = lower, 1 = upper)"
+        signal:
+          type: string
+          enum: [oversold, near_lower, neutral, near_upper, overbought]
+    BollingerResponse:
+      type: object
+      properties:
+        status:
+          type: boolean
+          example: true
+        symbol:
+          type: string
+          example: BTC
+        days:
+          type: integer
+          example: 90
+        settings:
+          type: object
+          properties:
+            period:
+              type: integer
+              example: 20
+            std_dev:
+              type: number
+              example: 2.0
+        snapshot:
+          type: object
+          properties:
+            date:
+              type: string
+            close:
+              type: number
+              format: double
+            upper_band:
+              type: number
+              format: double
+            middle_band:
+              type: number
+              format: double
+            lower_band:
+              type: number
+              format: double
+            bandwidth:
+              type: number
+              format: double
+            percent_b:
+              type: number
+              format: double
+            signal:
+              type: string
+              enum: [oversold, near_lower, neutral, near_upper, overbought]
+            avg_bandwidth:
+              type: number
+              format: double
+              description: "Average bandwidth over the returned period"
+            squeeze:
+              type: boolean
+              description: "True when current bandwidth < 50% of average (consolidation)"
+            expansion:
+              type: boolean
+              description: "True when current bandwidth > 150% of average (breakout)"
+        bands:
+          type: array
+          items:
+            $ref: '#/components/schemas/BollingerBandEntry'
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

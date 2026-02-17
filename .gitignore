@@ -1,0 +1,28 @@
+# Rust
+target/
+Cargo.lock
+
+# Node
+node_modules/
+dashboard/node_modules/
+
+# Environment (contains API keys)
+.env
+
+# Private keys
+rusty.txt
+
+# Database
+data/
+*.db
+*.db-wal
+*.db-shm
+
+# OS
+.DS_Store
+*.swp
+*.swo
+
+# IDE
+.idea/
+.vscode/
