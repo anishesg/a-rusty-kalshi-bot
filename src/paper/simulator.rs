@@ -611,8 +611,16 @@ pub fn run_tick(
         let price = if ev_result.buy_yes { yes_ask } else { 1.0 - yes_ask };
         let has_position = !state.open_positions.is_empty();
 
-        // Only enter if: signal, no existing position, enough time, and not too close to strike
-        if ev_result.is_signal && paper_contracts > 0.0 && !has_position && ttl_seconds > MIN_ENTRY_TTL {
+        // Don't enter if BTC is already on the wrong side of strike
+        // (would immediately trigger strike_cross exit on next tick)
+        let entry_side_ok = if ev_result.buy_yes {
+            btc_price >= strike - STRIKE_CROSS_BUFFER
+        } else {
+            btc_price <= strike + STRIKE_CROSS_BUFFER
+        };
+
+        // Only enter if: signal, no existing position, enough time, and BTC position makes sense
+        if ev_result.is_signal && paper_contracts > 0.0 && !has_position && ttl_seconds > MIN_ENTRY_TTL && entry_side_ok {
             let risk = limits::check_risk_limits(
                 state,
                 vol_state,

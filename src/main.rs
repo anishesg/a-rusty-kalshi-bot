@@ -25,17 +25,13 @@ use tokio::sync::mpsc;
 
 #[tokio::main]
 async fn main() {
-    // Early stdout so Railway captures something even if tracing fails
-    eprintln!("[pretty_rusty] binary started, setting up logging...");
-
-    // Structured logging (line-buffered for Railway)
+    // Structured logging
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
                 .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
         )
         .with_target(false)
-        .with_writer(std::io::stderr)
         .init();
 
     tracing::info!("pretty_rusty engine starting");
