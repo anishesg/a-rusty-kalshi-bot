@@ -46,5 +46,5 @@ RUN mkdir -p data
 # Expose the server port
 EXPOSE 3001
 
-# Run the engine
-CMD ["./pretty_rusty"]
+# Run the engine with diagnostics
+CMD ["sh", "-c", "echo 'Container starting...' && ls -la /app/pretty_rusty && ldd /app/pretty_rusty 2>&1 || echo 'ldd check done' && echo 'Launching binary...' && exec ./pretty_rusty"]
